@@ -1,0 +1,15 @@
+
+*.mp3
+*.wav
+*.zip
+*.mov
+*.mp4
+*.png
+*.jpg
+*.jpeg
+.DS_Store
+node_modules/
+env/
+venv/
+__pycache__/
+
