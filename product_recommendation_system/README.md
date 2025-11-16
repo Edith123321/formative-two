@@ -9,23 +9,6 @@ A machine learning-based product recommendation system that analyzes customer tr
 - **Evaluation**: Comprehensive metrics (accuracy, F1-score, precision, recall)
 - **Visualization**: Generates confusion matrices and feature importance plots
 
-## Project Structure
-
-formative-two/
-│── product_recommendation_system/
-│   ├── data/                     # Raw and processed data
-│   ├── models/                   # Saved models and preprocessors
-│   ├── reports/                  # Generated reports and visualizations
-│   └── src/                      # Source code
-│       ├── data_processing.py    # Data loading and preprocessing
-│       ├── model.py              # Model implementation
-│       ├── train.py              # Training pipeline
-│       ├── evaluate.py           # Model evaluation
-│       └── eda.py                # Exploratory data analysis
-│
-├── requirements.txt
-└── README.md
-
 # Dependencies
       
 ## Setup
