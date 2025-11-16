@@ -31,7 +31,7 @@ def check_dependencies():
         sys.exit(1)
 
 def check_data_files():
-    """Check if required data files exist"""
+    """Check if required data files exist and are not empty"""
     required_files = {
         'customer_social_profiles.csv': 'data/raw/customer_social_profiles.csv',
         'customer_transactions.csv': 'data/raw/customer_transactions.csv'
@@ -39,15 +39,15 @@ def check_data_files():
     
     missing_files = []
     for file_name, file_path in required_files.items():
-        if os.path.exists(file_path):
-            print(f"✅ {file_name} found")
+        if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+            print(f"✅ {file_name} found and not empty")
         else:
-            print(f"❌ {file_name} missing")
+            print(f"❌ {file_name} missing or empty")
             missing_files.append(file_name)
     
     if missing_files:
-        print(f"\nMissing data files: {missing_files}")
-        print("Please ensure the CSV files are in the data/raw/ directory")
+        print(f"\nMissing or empty data files: {missing_files}")
+        print("Please ensure the CSV files are in the data/raw/ directory and contain data")
         return False
     
     return True
