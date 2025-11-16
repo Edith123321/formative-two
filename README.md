@@ -80,4 +80,4 @@ Visualizations:
 - Edith Githinji – Data Analyst  
 - Wenebifid – Data Scientist  
 - Patricia Mugabo – ML Engineer
-- Queen
+- Queen WIHOGORA - Data Engineer
