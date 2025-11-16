@@ -11,7 +11,20 @@ A machine learning-based product recommendation system that analyzes customer tr
 
 ## Project Structure
 
-formative-two/ ├── product_recommendation_system/ │ ├── data/ # Raw and processed data │ ├── models/ # Saved models and preprocessors │ ├── reports/ # Generated reports and visualizations │ └── src/ # Source code │ ├── data_processing.py # Data loading and preprocessing │ ├── model.py # Model implementation │ ├── train.py # Training pipeline │ ├── evaluate.py # Model evaluation │ └── eda.py # Exploratory data analysis └── requirements.txt 
+formative-two/
+│── product_recommendation_system/
+│   ├── data/                     # Raw and processed data
+│   ├── models/                   # Saved models and preprocessors
+│   ├── reports/                  # Generated reports and visualizations
+│   └── src/                      # Source code
+│       ├── data_processing.py    # Data loading and preprocessing
+│       ├── model.py              # Model implementation
+│       ├── train.py              # Training pipeline
+│       ├── evaluate.py           # Model evaluation
+│       └── eda.py                # Exploratory data analysis
+│
+├── requirements.txt
+└── README.md
 
 # Dependencies
       
@@ -81,6 +94,7 @@ Visualizations:
     Confusion matrix
 
 # Team Members
-[Team Member 1] - [Role]
-[Team Member 2] - [Role]
-Patricia Mugabo - ML Engineer    
+- Edith Githinji – Data Analyst  
+- Wenebifid – Data Scientist  
+- Patricia Mugabo – ML Engineer
+- Queen
