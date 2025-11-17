@@ -1,0 +1,13 @@
+feature,importance
+engagement_purchase_ratio,0.8811472091937558
+engagement_score,0.06810941328882367
+customer_rating,0.013830997081440014
+purchase_dayofweek,0.012099008458305697
+customer_id_legacy,0.006494353900280537
+transaction_id,0.0058454693152132225
+purchase_day,0.004589386622371847
+purchase_interest_score,0.004134224782587239
+purchase_month,0.0016960960180028564
+sentiment_score,0.001189565846237728
+is_weekend,0.0008642754929814247
+purchase_year,0.0
