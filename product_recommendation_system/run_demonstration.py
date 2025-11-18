@@ -8,7 +8,7 @@ sys.path.append('src')
 
 def simulate_authorized_transaction(simulator):
     """Simulate a successful transaction with authorized user"""
-    print("🧪 SIMULATING AUTHORIZED TRANSACTION")
+    print("SIMULATING AUTHORIZED TRANSACTION")
     print("=" * 50)
     
     # Use authorized user's data
@@ -40,7 +40,7 @@ def simulate_authorized_transaction(simulator):
 
 def simulate_unauthorized_attempt(simulator):
     """Simulate an unauthorized attempt"""
-    print("\n🚫 SIMULATING UNAUTHORIZED ATTEMPT")
+    print("\nSIMULATING UNAUTHORIZED ATTEMPT")
     print("=" * 50)
     
     # Use unauthorized data
@@ -71,15 +71,15 @@ def simulate_unauthorized_attempt(simulator):
     return recommendation
 
 def main():
-    print("🚀 PRODUCT RECOMMENDATION SYSTEM - DEMONSTRATION")
+    print("PRODUCT RECOMMENDATION SYSTEM - DEMONSTRATION")
     print("=" * 60)
     
     try:
         from system_simulation import SystemSimulator
         simulator = SystemSimulator('models')
-        print("✅ System simulator initialized successfully!")
+        print("System simulator initialized successfully!")
     except Exception as e:
-        print(f"❌ Error initializing simulator: {e}")
+        print(f"Error initializing simulator: {e}")
         print("Please run main.py first to train the models.")
         return
     
@@ -94,15 +94,15 @@ def main():
     result2 = simulate_unauthorized_attempt(simulator)
     
     print("\n" + "=" * 60)
-    print("🎯 DEMONSTRATION COMPLETE")
+    print("DEMONSTRATION COMPLETE")
     print("=" * 60)
     
     if result1:
-        print(f"✅ Authorized transaction result: Recommendation = {result1}")
+        print(f"Authorized transaction result: Recommendation = {result1}")
     if not result2:
-        print("✅ Unauthorized attempt correctly blocked")
+        print("Unauthorized attempt correctly blocked")
     else:
-        print("❌ Unauthorized attempt was incorrectly approved")
+        print("Unauthorized attempt was incorrectly approved")
 
 if __name__ == "__main__":
     main()

@@ -1,23 +1,26 @@
 AUDIO FEATURE ANALYSIS REPORT
 ==================================================
 
-Total audio samples processed: 20
-Unique members: 2
-Unique phrases: 2
+Total audio samples processed: 45
+Unique members: 5
+Unique phrases: 3
 Augmentations applied: 5
 
 Member Statistics:
-  member1: 10 samples
   member2: 10 samples
+  member3: 10 samples
+  member4: 10 samples
+  member1: 10 samples
+  unauthorized: 5 samples
 
 Feature Statistics:
-  mfcc_0_mean: mean=-513.7361, std=111.9794
-  mfcc_1_mean: mean=76.4323, std=34.1639
-  mfcc_2_mean: mean=7.5091, std=5.8326
-  mfcc_3_mean: mean=18.7632, std=10.7942
-  mfcc_4_mean: mean=-0.2578, std=10.4414
-  mfcc_5_mean: mean=7.1495, std=7.2525
-  mfcc_6_mean: mean=-7.7444, std=6.0923
-  mfcc_7_mean: mean=-1.2814, std=2.3236
-  mfcc_8_mean: mean=-2.4354, std=1.9617
-  mfcc_9_mean: mean=2.4306, std=4.6446
+  mfcc_0_mean: mean=-439.7255, std=114.2391
+  mfcc_1_mean: mean=93.6215, std=37.8594
+  mfcc_2_mean: mean=-9.7742, std=25.5488
+  mfcc_3_mean: mean=12.3131, std=11.2743
+  mfcc_4_mean: mean=-4.4965, std=11.7945
+  mfcc_5_mean: mean=4.9542, std=10.2828
+  mfcc_6_mean: mean=-6.5592, std=9.2746
+  mfcc_7_mean: mean=-4.9614, std=10.2524
+  mfcc_8_mean: mean=-2.9406, std=4.3258
+  mfcc_9_mean: mean=-0.7240, std=6.3794

@@ -1,290 +1,318 @@
-import os
 import pandas as pd
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, mean_squared_error, classification_report
-from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import accuracy_score, f1_score, classification_report
+from sklearn.preprocessing import StandardScaler
 import joblib
-import xgboost as xgb
-from typing import Tuple, Dict, Union, Optional, Any
-import warnings
-warnings.filterwarnings('ignore')
+import logging
+from typing import Tuple, Dict, Any, Optional
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class ModelTrainer:
-    def __init__(self, random_state: int = 42):
-        """Initialize the ModelTrainer with a random state for reproducibility."""
-        self.random_state = random_state
+    """
+    A machine learning model trainer for facial recognition, voice verification, 
+    and product recommendation systems.
+    """
+    
+    # Model configuration constants
+    DEFAULT_TEST_SIZE = 0.2
+    DEFAULT_RANDOM_STATE = 42
+    RF_ESTIMATORS = 100
+    
+    # Column names for data preparation
+    FACE_DROP_COLS = ['member_id', 'image_file', 'augmentation', 'expression']
+    AUDIO_DROP_COLS = ['member_id', 'audio_file', 'augmentation', 'phrase']
+    PRODUCT_DROP_COLS = [
+        'product_category', 'customer_id_new', 'customer_id_legacy', 
+        'transaction_id', 'purchase_date'
+    ]
+    
+    def __init__(self):
+        """Initialize the ModelTrainer with empty models and scalers."""
         self.models: Dict[str, Any] = {}
-        self.feature_importances: Dict[str, Dict[str, float]] = {}
-        self.metrics: Dict[str, Dict[str, Any]] = {}
-        self.expression_encoder: Optional[LabelEncoder] = None
-        self.member_encoder: Optional[LabelEncoder] = None
+        self.scalers: Dict[str, StandardScaler] = {}
     
-    def prepare_facial_data(self, image_features: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
+    def prepare_facial_data(self, image_features_df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
         """
-        Prepare image features for facial recognition model training.
+        Prepare data for facial recognition model.
         
         Args:
-            image_features: DataFrame containing image features
+            image_features_df: DataFrame containing image features and labels
             
         Returns:
-            Tuple of (features, target) for model training
+            Tuple of features (X) and labels (y)
         """
-        # Make a copy to avoid SettingWithCopyWarning
-        df = image_features.copy()
-        
-        # Encode the target variable (expression) as numerical values
-        self.expression_encoder = LabelEncoder()
-        df['expression_encoded'] = self.expression_encoder.fit_transform(df['expression'])
-        
-        # Get features and target
-        X = df.select_dtypes(include=[np.number]).drop(['expression_encoded'], axis=1)
-        y = df['expression_encoded']
-        
-        return X, y
+        try:
+            X = image_features_df.drop(columns=self.FACE_DROP_COLS, errors='ignore')
+            y = image_features_df['member_id']
+            
+            # Handle missing values
+            X = X.fillna(0)
+            
+            logger.info(f"Facial data prepared: {X.shape[0]} samples, {X.shape[1]} features")
+            return X, y
+            
+        except KeyError as e:
+            logger.error(f"Missing required columns in facial data: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Error preparing facial data: {e}")
+            raise
     
-    def prepare_audio_data(self, audio_features: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
+    def prepare_audio_data(self, audio_features_df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
         """
-        Prepare audio features for voice verification model training.
+        Prepare data for voice verification model.
         
         Args:
-            audio_features: DataFrame containing audio features
+            audio_features_df: DataFrame containing audio features and labels
             
         Returns:
-            Tuple of (features, target) for model training
+            Tuple of features (X) and labels (y)
         """
-        # Make a copy to avoid SettingWithCopyWarning
-        df = audio_features.copy()
-        
-        # Encode the member_id as numerical values
-        self.member_encoder = LabelEncoder()
-        df['member_encoded'] = self.member_encoder.fit_transform(df['member_id'])
-        
-        # Get features and target
-        X = df.select_dtypes(include=[np.number]).drop(['member_encoded'], axis=1)
-        y = df['member_encoded']
-        
-        return X, y
+        try:
+            X = audio_features_df.drop(columns=self.AUDIO_DROP_COLS, errors='ignore')
+            y = audio_features_df['member_id']
+            
+            # Handle missing values
+            X = X.fillna(0)
+            
+            logger.info(f"Audio data prepared: {X.shape[0]} samples, {X.shape[1]} features")
+            return X, y
+            
+        except KeyError as e:
+            logger.error(f"Missing required columns in audio data: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Error preparing audio data: {e}")
+            raise
     
-    def prepare_product_data(self, merged_data: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
+    def prepare_product_data(self, merged_df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
         """
-        Prepare product recommendation data for model training with detailed debugging.
+        Prepare data for product recommendation model.
         
         Args:
-            merged_data: DataFrame containing merged customer and transaction data
+            merged_df: DataFrame containing customer and transaction data
             
         Returns:
-            Tuple of (features, target) for model training
+            Tuple of features (X) and labels (y)
+        """
+        try:
+            X = merged_df.drop(columns=self.PRODUCT_DROP_COLS, errors='ignore')
+            y = merged_df['product_category']
+            
+            # Handle categorical variables and missing values
+            X = pd.get_dummies(X)
+            X = X.fillna(0)
+            
+            logger.info(f"Product data prepared: {X.shape[0]} samples, {X.shape[1]} features")
+            return X, y
+            
+        except KeyError as e:
+            logger.error(f"Missing required columns in product data: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Error preparing product data: {e}")
+            raise
+    
+    def _initialize_model(self, model_type: str) -> Any:
+        """
+        Initialize the appropriate model based on type.
+        
+        Args:
+            model_type: Type of model to initialize ('random_forest', 'logistic_regression')
+            
+        Returns:
+            Initialized model instance
             
         Raises:
-            ValueError: If required columns are missing or no valid samples remain
+            ValueError: If model_type is not supported
         """
-        # Make a copy to avoid modifying the original data
-        df = merged_data.copy()
+        model_registry = {
+            'random_forest': RandomForestClassifier(
+                n_estimators=self.RF_ESTIMATORS, 
+                random_state=self.DEFAULT_RANDOM_STATE
+            ),
+            'logistic_regression': LogisticRegression(random_state=self.DEFAULT_RANDOM_STATE),
+        }
         
-        # Debug: Print available columns and first few rows
-        print("\n🔍 Available columns in merged data:")
-        print(df.columns.tolist())
-        print("\n📊 First few rows of data:")
-        print(df.head())
+        if model_type not in model_registry:
+            raise ValueError(f"Unsupported model type: {model_type}. "
+                           f"Supported types: {list(model_registry.keys())}")
         
-        # Ensure we have the required columns
-        if 'purchase_amount' not in df.columns:
-            raise ValueError("'purchase_amount' column is required but not found in the data")
-        
-        # Check for missing values in the target
-        missing_target = df['purchase_amount'].isna().sum()
-        if missing_target > 0:
-            print(f"\n⚠️  Warning: Found {missing_target} missing values in 'purchase_amount'")
-        
-        # Get numeric columns (excluding the target)
-        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-        if 'purchase_amount' in numeric_cols:
-            numeric_cols.remove('purchase_amount')
-        
-        print(f"\n🔢 Numeric features available: {numeric_cols}")
-        
-        # If no numeric features, try to convert some common columns
-        if not numeric_cols:
-            print("\n⚠️  No numeric features found. Attempting to convert potential numeric columns...")
-            potential_numeric = ['customer_rating', 'engagement_score', 'purchase_interest_score']
-            for col in potential_numeric:
-                if col in df.columns:
-                    try:
-                        df[col] = pd.to_numeric(df[col], errors='coerce')
-                        numeric_cols.append(col)
-                        print(f"✅ Converted '{col}' to numeric")
-                    except Exception as e:
-                        print(f"⚠️  Could not convert '{col}' to numeric: {e}")
-        
-        # If still no numeric features, try to use one-hot encoded columns
-        if not numeric_cols:
-            print("\n⚠️  Still no numeric features. Trying to use one-hot encoded columns...")
-            potential_binary = [col for col in df.columns if col.startswith(('is_', 'has_', 'social_media_platform_'))]
-            if potential_binary:
-                print(f"Using binary columns as features: {potential_binary}")
-                numeric_cols = potential_binary
-        
-        # If we have the target but no features, create some basic features
-        if not numeric_cols and 'purchase_amount' in df.columns:
-            print("\n⚠️  No suitable features found. Creating basic features...")
-            # Add a constant feature (intercept)
-            df['constant'] = 1
-            numeric_cols = ['constant']
-        
-        if not numeric_cols:
-            raise ValueError("No valid features available for model training")
-        
-        # Prepare features and target
-        X = df[numeric_cols].copy()
-        y = df['purchase_amount']
-        
-        # Drop rows where target is missing
-        valid_idx = y.notna()
-        X = X[valid_idx].copy()
-        y = y[valid_idx]
-        
-        if len(X) == 0:
-            print("\n❌ Error: No valid samples remaining after removing missing values")
-            print("Missing values by column:")
-            print(df.isnull().sum())
-            print("\nData types:")
-            print(df.dtypes)
-            print("\nTarget value counts:")
-            print(df['purchase_amount'].value_counts(dropna=False))
-            raise ValueError("No valid samples remaining after removing missing values")
-        
-        print(f"\n✅ Successfully prepared {len(X)} samples with {len(numeric_cols)} features")
-        print(f"Features: {numeric_cols}")
-        print(f"Target range: {y.min():.2f} to {y.max():.2f}")
-        
-        return X, y
+        return model_registry[model_type]
     
-    def train_model(self, X: pd.DataFrame, y: pd.Series, model_type: str = 'random_forest', 
-                   task: str = 'classification') -> Dict[str, float]:
+    def _evaluate_model(self, model: Any, X_test: np.ndarray, y_test: pd.Series, 
+                       model_name: str, model_type: str) -> Dict[str, float]:
         """
-        Train a machine learning model.
+        Evaluate model performance and log results.
+        
+        Args:
+            model: Trained model instance
+            X_test: Test features
+            y_test: Test labels
+            model_name: Name of the model
+            model_type: Type of the model
+            
+        Returns:
+            Dictionary containing evaluation metrics
+        """
+        y_pred = model.predict(X_test)
+        accuracy = accuracy_score(y_test, y_pred)
+        f1 = f1_score(y_test, y_pred, average='weighted')
+        
+        # Log results
+        logger.info(f"{model_name} - {model_type} Results:")
+        logger.info(f"Accuracy: {accuracy:.4f}")
+        logger.info(f"F1-Score: {f1:.4f}")
+        
+        print(f"\n{model_name} - {model_type} Results:")
+        print(f"Accuracy: {accuracy:.4f}")
+        print(f"F1-Score: {f1:.4f}")
+        print(classification_report(y_test, y_pred))
+        
+        return {'accuracy': accuracy, 'f1_score': f1}
+    
+    def train_model(self, X: pd.DataFrame, y: pd.Series, 
+                   model_type: str = 'random_forest', 
+                   model_name: str = 'default') -> Tuple[Any, Dict[str, float]]:
+        """
+        Train a model with given parameters.
         
         Args:
             X: Feature matrix
-            y: Target variable
-            model_type: Type of model to train ('random_forest' or 'xgboost')
-            task: Type of task ('classification' or 'regression')
+            y: Target labels
+            model_type: Type of model to train
+            model_name: Name for the trained model
             
         Returns:
-            Dictionary of model metrics
+            Tuple of (trained_model, evaluation_metrics)
+            
+        Raises:
+            ValueError: If input data is invalid
         """
-        # Split the data
+        # Validate inputs
+        if X.empty or y.empty:
+            raise ValueError("Input features and labels cannot be empty")
+        
+        if len(X) != len(y):
+            raise ValueError("Features and labels must have the same length")
+        
+        logger.info(f"Training {model_name} with {model_type} on {len(X)} samples")
+        
+        # Split data
         X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=self.random_state
+            X, y, 
+            test_size=self.DEFAULT_TEST_SIZE, 
+            random_state=self.DEFAULT_RANDOM_STATE,
+            stratify=y
         )
         
-        # Initialize model
-        if model_type == 'random_forest':
-            if task == 'classification':
-                model = RandomForestClassifier(n_estimators=100, random_state=self.random_state)
-            else:
-                model = RandomForestRegressor(n_estimators=100, random_state=self.random_state)
-        elif model_type == 'xgboost':
-            if task == 'classification':
-                # For XGBoost classification, we need to specify the number of classes
-                num_class = len(np.unique(y))
-                model = xgb.XGBClassifier(
-                    objective='multi:softmax',
-                    num_class=num_class,
-                    random_state=self.random_state
-                )
-            else:
-                model = xgb.XGBRegressor(objective='reg:squarederror', random_state=self.random_state)
-        else:
-            raise ValueError(f"Unsupported model type: {model_type}")
+        # Scale features
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_test_scaled = scaler.transform(X_test)
+        self.scalers[model_name] = scaler
         
-        # Train the model
-        model.fit(X_train, y_train)
+        # Initialize and train model
+        model = self._initialize_model(model_type)
+        model.fit(X_train_scaled, y_train)
         
-        # Make predictions
-        y_pred = model.predict(X_test)
+        # Evaluate model
+        metrics = self._evaluate_model(model, X_test_scaled, y_test, model_name, model_type)
         
-        # Calculate metrics
-        metrics = {}
-        if task == 'classification':
-            metrics['accuracy'] = accuracy_score(y_test, y_pred)
-            # Convert numerical predictions back to original labels if we have an encoder
-            if self.expression_encoder is not None:
-                y_test_labels = self.expression_encoder.inverse_transform(y_test)
-                y_pred_labels = self.expression_encoder.inverse_transform(y_pred.astype(int))
-                metrics['classification_report'] = classification_report(
-                    y_test_labels, y_pred_labels, output_dict=True
-                )
-            elif self.member_encoder is not None:
-                y_test_labels = self.member_encoder.inverse_transform(y_test)
-                y_pred_labels = self.member_encoder.inverse_transform(y_pred.astype(int))
-                metrics['classification_report'] = classification_report(
-                    y_test_labels, y_pred_labels, output_dict=True
-                )
-            else:
-                metrics['classification_report'] = classification_report(
-                    y_test, y_pred, output_dict=True
-                )
-        else:
-            metrics['mse'] = mean_squared_error(y_test, y_pred)
-            metrics['rmse'] = np.sqrt(metrics['mse'])
+        # Store model
+        self.models[model_name] = model
         
-        # Store model and metrics
-        self.models[task] = model
-        self.metrics[task] = metrics
-        
-        # Store feature importances if available
-        if hasattr(model, 'feature_importances_'):
-            self.feature_importances[task] = dict(zip(X.columns, model.feature_importances_))
-        
-        return metrics
+        logger.info(f"Successfully trained {model_name} with accuracy: {metrics['accuracy']:.4f}")
+        return model, metrics
     
-    def save_models(self, output_dir: str) -> None:
+    def save_models(self, models_dir: str) -> None:
         """
-        Save trained models to disk.
+        Save trained models and scalers to disk.
         
         Args:
-            output_dir: Directory to save the models
-        """
-        os.makedirs(output_dir, exist_ok=True)
-        
-        for task, model in self.models.items():
-            model_path = os.path.join(output_dir, f'{task}_model.joblib')
-            joblib.dump(model, model_path)
+            models_dir: Directory to save models and scalers
             
-            # Save feature importances if available
-            if task in self.feature_importances:
-                importances = pd.DataFrame(
-                    self.feature_importances[task].items(),
-                    columns=['feature', 'importance']
-                ).sort_values('importance', ascending=False)
+        Raises:
+            OSError: If directory cannot be created or files cannot be written
+        """
+        import os
+        os.makedirs(models_dir, exist_ok=True)
+        
+        try:
+            # Save models
+            for name, model in self.models.items():
+                model_path = f"{models_dir}/{name}_model.pkl"
+                joblib.dump(model, model_path)
+                logger.info(f"Saved model: {model_path}")
+            
+            # Save scalers
+            for name, scaler in self.scalers.items():
+                scaler_path = f"{models_dir}/{name}_scaler.pkl"
+                joblib.dump(scaler, scaler_path)
+                logger.info(f"Saved scaler: {scaler_path}")
                 
-                importances.to_csv(
-                    os.path.join(output_dir, f'{task}_feature_importances.csv'),
-                    index=False
-                )
+            logger.info(f"All models and scalers saved to {models_dir}")
             
-            # Save metrics
-            if task in self.metrics:
-                metrics_df = pd.DataFrame([self.metrics[task]])
-                metrics_df.to_csv(
-                    os.path.join(output_dir, f'{task}_metrics.csv'),
-                    index=False
-                )
+        except Exception as e:
+            logger.error(f"Error saving models to {models_dir}: {e}")
+            raise
     
-    def load_model(self, model_path: str):
+    def get_model_info(self) -> Dict[str, Any]:
         """
-        Load a trained model from disk.
+        Get information about trained models.
         
-        Args:
-            model_path: Path to the saved model
-            
         Returns:
-            Loaded model
+            Dictionary containing model information
         """
-        if not os.path.exists(model_path):
-            raise FileNotFoundError(f"Model file not found: {model_path}")
+        info = {
+            'trained_models': list(self.models.keys()),
+            'available_scalers': list(self.scalers.keys()),
+            'model_counts': {
+                'models': len(self.models),
+                'scalers': len(self.scalers)
+            }
+        }
+        return info
+    
+    def clear_models(self) -> None:
+        """Clear all stored models and scalers."""
+        self.models.clear()
+        self.scalers.clear()
+        logger.info("Cleared all models and scalers")
+
+# Example usage
+if __name__ == "__main__":
+    # Example of how to use the ModelTrainer
+    trainer = ModelTrainer()
+    
+    # Example with dummy data (replace with actual data)
+    try:
+        # This is just an example - replace with your actual data loading
+        dummy_features = pd.DataFrame({
+            'feature1': np.random.rand(100),
+            'feature2': np.random.rand(100),
+            'member_id': np.random.choice(['member1', 'member2'], 100)
+        })
         
-        return joblib.load(model_path)
+        X, y = trainer.prepare_facial_data(dummy_features)
+        model, metrics = trainer.train_model(
+            X, y, 
+            model_type='random_forest', 
+            model_name='facial_recognition'
+        )
+        
+        # Save models
+        trainer.save_models('trained_models')
+        
+        # Print model info
+        print("\nModel Information:")
+        print(trainer.get_model_info())
+        
+    except Exception as e:
+        logger.error(f"Example failed: {e}")

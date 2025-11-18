@@ -239,7 +239,7 @@ class SystemSimulator:
     
     def product_recommendation(self, user_data):
         """Generate product recommendation based on user data"""
-        print("📊 Generating product recommendation...")
+        print(" Generating product recommendation...")
         
         try:
             # Ensure user_data is properly shaped and scaled
@@ -265,7 +265,7 @@ class SystemSimulator:
     
     def simulate_transaction(self, image_path, audio_path, user_data):
         """Simulate complete transaction flow"""
-        print("🚀 Starting transaction simulation...")
+        print(" Starting transaction simulation...")
         print("=" * 50)
         
         # Step 1: Facial Recognition
@@ -290,7 +290,7 @@ class SystemSimulator:
         print("\n3. PRODUCT RECOMMENDATION")
         if face_auth and voice_auth:
             recommendation, confidence = self.product_recommendation(user_data)
-            print(f"\n🎉 TRANSACTION APPROVED!")
+            print(f"\n TRANSACTION APPROVED!")
             print(f"   User: {user_id}")
             print(f"   Recommended product: {recommendation}")
             print(f"   Confidence: {confidence:.3f}")
